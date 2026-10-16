@@ -13,6 +13,7 @@ Le contrat HTTP ne dépend pas du choix de persistance : le backend fourni utili
 | PUT | `/users/me` | `{name}` + JWT | `200 User` |
 | GET | `/tracks?page=1&limit=5` | JWT | `Page<Track>` |
 | POST | `/tracks` | multipart : `audio`, `title` | `201 Track` |
+| GET | `/tracks/:id` | JWT | `200 Track` + `peaks` (page studio) |
 | GET | `/tracks/:id/audio` | JWT | flux audio |
 | DELETE | `/tracks/:id` | JWT | `204` (bonus, supprime aussi la couverture) |
 | PUT | `/tracks/:id/cover` | multipart : `cover` + JWT | `200 Track` (avancé) |
@@ -51,3 +52,11 @@ Chaque `Track` contient aussi `hasCover` (booléen) : `true` si la piste a une i
 `GET /tracks/:id/cover` : JWT obligatoire. Réponses : `200` avec l'image et son `Content-Type` (plus `X-Content-Type-Options: nosniff`) ; `401` sans JWT valide ; `404` si la piste n'a pas de couverture, n'existe pas ou appartient à un autre utilisateur.
 
 Erreurs courantes : `400` validation, `401` authentification, `404` ressource, `409` email déjà utilisé, `502` service externe indisponible.
+
+## Projet, page studio
+
+`POST /tracks` calcule aussi la forme d'onde du fichier avec ffmpeg (paquet `ffmpeg-static`, rien à installer). Elle est enregistrée sur la piste avec sa durée. Comme pour les tags, un calcul impossible ne fait jamais échouer l'upload. Chaque `Track` contient donc aussi `duration` (en secondes, facultatif).
+
+`GET /tracks/:id` renvoie la piste avec les mêmes champs que la liste, plus `peaks`, un tableau de 800 nombres entre 0 et 1 (le pic de chaque tranche du morceau). Il est vide si la forme d'onde n'a pas pu être calculée. La liste paginée ne renvoie jamais `peaks` pour rester légère. Réponses : `200` ; `401` sans JWT valide ; `404` si la piste n'existe pas ou appartient à un autre utilisateur.
+
+Pour les pistes envoyées avant cette version, `npm run peaks` (dans `backend/`) calcule les formes d'onde manquantes.
