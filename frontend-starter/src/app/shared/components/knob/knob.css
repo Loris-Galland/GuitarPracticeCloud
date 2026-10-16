@@ -1,0 +1,45 @@
+:host {
+  display: inline-grid;
+  justify-items: center;
+  gap: 0.3rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+/* Bouton jaune à contour noir, l'aiguille tourne avec --angle. */
+.dial {
+  position: relative;
+  width: var(--knob-size, 70px);
+  height: var(--knob-size, 70px);
+  border-radius: 50%;
+  background: var(--knob-color, var(--yellow));
+  border: var(--line);
+  box-shadow: 3px 3px 0 var(--ink);
+  cursor: ns-resize;
+  touch-action: none;
+}
+.dial::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 8%;
+  width: 7%;
+  height: 36%;
+  margin-left: -3.5%;
+  background: var(--knob-needle, var(--ink));
+  border-radius: 3px;
+  transform-origin: 50% 117%;
+  transform: rotate(var(--angle, 0deg));
+}
+.dial:focus-visible { outline: 3px solid var(--magenta); outline-offset: 3px; }
+.dial[aria-disabled='true'] { opacity: 0.5; cursor: not-allowed; }
+
+.name { font-size: 0.8rem; }
+output { font: 700 0.8rem ui-monospace, Consolas, monospace; text-transform: none; }
+
+/* Petite version noire pour les pédales. */
+:host(.size-sm) { --knob-size: 42px; --knob-color: var(--ink); --knob-needle: var(--white); gap: 0.2rem; }
+:host(.size-sm) .dial { border-color: var(--white); box-shadow: none; }
+:host(.size-sm) .name { font-size: 0.68rem; }
+:host(.size-sm) output { font-size: 0.68rem; }
