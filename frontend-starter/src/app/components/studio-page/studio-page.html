@@ -1,0 +1,131 @@
+<section class="studio-page">
+  <a class="back" routerLink="/tracks">← Bibliothèque</a>
+
+  @if (loading()) {
+    <p aria-live="polite">Chargement de la piste…</p>
+  } @else if (error()) {
+    <p class="error" role="alert">{{ error() }}</p>
+  } @else if (track(); as track) {
+    <div class="track-head">
+      <div>
+        <h1>{{ track.title }}</h1>
+        @if (track.artist) {
+          <p class="artist">{{ track.artist }}</p>
+        }
+      </div>
+      @if (playing()) {
+        <span class="on-air" aria-hidden="true">ON AIR</span>
+      }
+    </div>
+
+    <section class="transport" aria-label="Lecture">
+      <app-waveform
+        [peaks]="track.peaks"
+        [progress]="progress()"
+        [duration]="duration()"
+        [label]="track.title"
+        (seek)="seek($event)"
+      />
+      <div class="controls">
+        <button
+          type="button"
+          class="play"
+          (click)="toggle()"
+          [attr.aria-label]="playing() ? 'Pause' : 'Lecture'"
+        >
+          {{ playing() ? '❚❚' : '▶' }}
+        </button>
+        <span class="time">{{ formatTime(currentTime()) }} / {{ formatTime(duration()) }}</span>
+      </div>
+      <audio
+        #player
+        [src]="audioUrl()"
+        (play)="onPlay()"
+        (pause)="onPause()"
+        (ended)="onPause()"
+        (loadedmetadata)="onMetadata()"
+      ></audio>
+    </section>
+
+    <div class="rack" [formGroup]="controls">
+      <section class="panel levels" aria-label="Niveaux et sortie">
+        <div>
+          <h2>Niveaux</h2>
+          <app-stereo-meter />
+        </div>
+        <div class="spectrum-block">
+          <h2>Spectre</h2>
+          <app-spectrum />
+        </div>
+        <div>
+          <h2>Sortie</h2>
+          <div class="knobs">
+            <app-knob formControlName="volume" label="Volume" [defaultValue]="0.8" [format]="formatPercent" />
+            <app-knob formControlName="pan" label="Pan" [min]="-1" [max]="1" [defaultValue]="0" [format]="formatPan" />
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="eq-title">
+        <div class="eq-head">
+          <h2 id="eq-title">Égaliseur</h2>
+          <button type="button" class="ghost" (click)="flattenEq()">Remettre à plat</button>
+        </div>
+        <div class="eq" formArrayName="eq">
+          @for (band of bands; track band.hz) {
+            <app-fader
+              [formControlName]="$index"
+              [label]="'Égaliseur ' + band.short + 'Hz'"
+              [shortLabel]="band.short"
+              [min]="-eqRange"
+              [max]="eqRange"
+              [format]="formatDb"
+            />
+          }
+        </div>
+      </section>
+
+      <section class="board" aria-labelledby="board-title">
+        <h2 id="board-title">Pedalboard</h2>
+        <div class="pedals">
+          <div class="pedal yellow" formGroupName="distortion" [class.off]="!settings().distortion.on">
+            <h3>Dist</h3>
+            <div class="pedal-knobs">
+              <app-knob formControlName="drive" label="Drive" size="sm" [defaultValue]="0.5" [format]="formatPercent" />
+              <app-knob formControlName="tone" label="Tone" size="sm" [defaultValue]="0.6" [format]="formatPercent" />
+            </div>
+            <app-footswitch formControlName="on" label="Distorsion" />
+          </div>
+
+          <div class="pedal magenta" formGroupName="delay" [class.off]="!settings().delay.on">
+            <h3>Delay</h3>
+            <div class="pedal-knobs">
+              <app-knob formControlName="time" label="Temps" size="sm" [min]="0.05" [max]="1.5" [step]="0.01" [defaultValue]="0.35" [format]="formatSeconds" />
+              <app-knob formControlName="feedback" label="Retour" size="sm" [max]="0.9" [defaultValue]="0.4" [format]="formatPercent" />
+              <app-knob formControlName="mix" label="Mix" size="sm" [defaultValue]="0.35" [format]="formatPercent" />
+            </div>
+            <app-footswitch formControlName="on" label="Delay" />
+          </div>
+
+          <div class="pedal cyan" formGroupName="reverb" [class.off]="!settings().reverb.on">
+            <h3>Reverb</h3>
+            <div class="pedal-knobs">
+              <app-knob formControlName="size" label="Taille" size="sm" [min]="0.3" [max]="5" [step]="0.1" [defaultValue]="2" [format]="formatSeconds" />
+              <app-knob formControlName="mix" label="Mix" size="sm" [defaultValue]="0.3" [format]="formatPercent" />
+            </div>
+            <app-footswitch formControlName="on" label="Reverb" />
+          </div>
+
+          <div class="pedal lime" formGroupName="filter" [class.off]="!settings().filter.on">
+            <h3>Filtre</h3>
+            <div class="pedal-knobs">
+              <app-knob formControlName="cutoff" label="Cutoff" size="sm" [min]="80" [max]="16000" [step]="1" [log]="true" [defaultValue]="2000" [format]="formatHz" />
+              <app-knob formControlName="resonance" label="Réso" size="sm" [min]="0.5" [max]="20" [step]="0.1" [defaultValue]="1" />
+            </div>
+            <app-footswitch formControlName="on" label="Filtre" />
+          </div>
+        </div>
+      </section>
+    </div>
+  }
+</section>
