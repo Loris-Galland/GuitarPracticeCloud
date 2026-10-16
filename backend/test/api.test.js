@@ -140,3 +140,26 @@ test("toPublic expose artiste, album et origine de la couverture", () => {
   assert.equal(pub.coverSource, "web");
   assert.equal("coverName" in pub, false);
 });
+
+test("401 sans JWT sur le détail d'une piste", async () => {
+  const r = await fetch(base + "/api/tracks/507f1f77bcf86cd799439011");
+  assert.equal(r.status, 401);
+  assert.equal((await r.json()).message, "Authentification requise");
+});
+
+test("la forme d'onde est exclue par défaut, toPublic expose seulement la durée", () => {
+  assert.equal(Track.schema.path("peaks").options.select, false);
+  const t = new Track({
+    ownerId: new mongoose.Types.ObjectId(),
+    title: "Blues",
+    originalName: "b.mp3",
+    storedName: "x.mp3",
+    mimeType: "audio/mpeg",
+    size: 42,
+    peaks: [0.1, 0.5],
+    duration: 12.5,
+  });
+  const pub = t.toPublic();
+  assert.equal(pub.duration, 12.5);
+  assert.equal("peaks" in pub, false);
+});

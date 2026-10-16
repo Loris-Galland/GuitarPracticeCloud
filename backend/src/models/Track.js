@@ -29,6 +29,10 @@ const schema = new mongoose.Schema(
     // Métadonnées facultatives lues dans les tags ID3 ou déduites du nom du fichier.
     artist: { type: String, trim: true, maxlength: 200 },
     album: { type: String, trim: true, maxlength: 200 },
+    // Forme d'onde calculée par ffmpeg à l'upload (valeurs entre 0 et 1, voir waveform.js).
+    // Exclue par défaut : la liste paginée n'en a pas besoin, seule GET /api/tracks/:id la renvoie.
+    peaks: { type: [Number], select: false, default: undefined },
+    duration: { type: Number, min: 0 },
   },
   { timestamps: true },
 );
@@ -56,6 +60,7 @@ schema.methods.toPublic = function () {
     size: this.size,
     hasCover: Boolean(this.coverType),
     coverSource: this.coverSource,
+    duration: this.duration,
     createdAt: this.createdAt,
   };
 };

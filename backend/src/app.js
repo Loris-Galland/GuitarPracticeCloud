@@ -18,6 +18,7 @@ import {
   readTags,
   saveCoverBuffer,
 } from "./metadata.js";
+import { computeWaveform } from "./waveform.js";
 
 // Les fichiers audio restent sur le disque du serveur dans ce TP.
 // MongoDB ne conserve que leurs métadonnées : titre, nom, taille, etc.
@@ -406,6 +407,15 @@ export function createApp() {
         // La pochette intégrée au fichier passe par les mêmes contrôles qu'une image envoyée.
         cover = tags.picture ? await saveCoverBuffer(tags.picture, UPLOADS) : null;
 
+        // Comme les tags, une forme d'onde impossible à calculer ne fait pas échouer l'upload :
+        // le studio affichera simplement qu'elle n'est pas disponible.
+        let waveform = null;
+        try {
+          waveform = await computeWaveform(path.join(UPLOADS, req.file.filename));
+        } catch (error) {
+          console.error(`[waveform] Calcul impossible pour ${req.file.originalname}`, error);
+        }
+
         const track = await Track.create({
           ownerId: req.auth.sub,
           title: cleanText(req.body.title) || tags.title || fromName.title || req.file.originalname,
@@ -416,6 +426,7 @@ export function createApp() {
           mimeType: req.file.mimetype,
           size: req.file.size,
           ...(cover && { ...cover, coverSource: "id3" }),
+          ...waveform,
         });
 
         console.log(`[tracks] Upload enregistré : ${track.id} (tags : ${tags.title ? "oui" : "non"}, pochette : ${cover ? "oui" : "non"})`);
@@ -442,6 +453,29 @@ export function createApp() {
       }
     },
   );
+
+  /**
+   * Détail d'une piste pour la page studio : les mêmes champs que la liste,
+   * plus la forme d'onde (tableau vide si elle n'a pas pu être calculée).
+   */
+  app.get("/api/tracks/:id", auth, async (req, res, next) => {
+    try {
+      const track = await Track.findOne({
+        _id: req.params.id,
+        ownerId: req.auth.sub,
+      }).select("+peaks");
+
+      if (!track) {
+        console.warn(`[tracks] Détail introuvable ou interdit : ${req.params.id}`);
+        return res.status(404).json({ message: "Piste inconnue" });
+      }
+
+      res.json({ ...track.toPublic(), peaks: track.peaks ?? [] });
+    } catch (error) {
+      console.error("[tracks] Erreur de lecture du détail", error);
+      next(error);
+    }
+  });
 
   /** Envoie le contenu binaire d'une piste après vérification de sa propriété. */
   app.get("/api/tracks/:id/audio", auth, async (req, res, next) => {
