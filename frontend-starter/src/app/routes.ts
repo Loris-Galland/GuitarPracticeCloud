@@ -22,5 +22,10 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./components/tracks-page/tracks-page').then((m) => m.TracksPageComponent),
   },
+  {
+    path: 'studio/:id',
+    canActivate: [authGuard],
+    loadComponent: () => import('./components/studio-page/studio-page').then((m) => m.StudioPageComponent),
+  },
   { path: '**', redirectTo: 'tracks' },
 ];

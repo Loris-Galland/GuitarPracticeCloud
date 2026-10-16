@@ -11,5 +11,13 @@ export interface Track {
   /** Optional metadata read from the ID3 tags or the file name. */
   artist?: string;
   album?: string;
+  /** Length in seconds, computed by ffmpeg at upload. */
+  duration?: number;
   createdAt: string;
+}
+
+/** GET /api/tracks/:id also returns the precomputed waveform (empty if unavailable). */
+export interface TrackDetail extends Track {
+  /** One value per slice of the track, from 0 (silence) to 1 (full scale). */
+  peaks: number[];
 }

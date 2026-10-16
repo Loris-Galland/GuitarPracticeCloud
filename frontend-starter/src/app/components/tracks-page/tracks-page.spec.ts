@@ -3,6 +3,7 @@ import { HttpEventType, provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { TracksPageComponent } from './tracks-page';
 import { Track } from '../../shared/models/track.model';
@@ -39,6 +40,8 @@ describe('TracksPageComponent', () => {
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
+        // The cards now link to the studio page (routerLink).
+        provideRouter([]),
         { provide: MatSnackBar, useValue: snackBar },
         { provide: MatDialog, useValue: dialog },
       ],

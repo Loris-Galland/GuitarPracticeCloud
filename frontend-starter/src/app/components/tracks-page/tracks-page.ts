@@ -19,12 +19,21 @@ import { FileSizePipe } from '../../shared/pipes/file-size.pipe';
 import { AudioFormatPipe } from '../../shared/pipes/audio-format.pipe';
 import { AudioVisualizerService } from '../../shared/services/audio-visualizer.service';
 import { StudioSceneComponent } from '../../shared/components/studio-scene/studio-scene';
+import { RouterLink } from '@angular/router';
 
 /** The four states of an upload asked by Mission 6. */
 export type UploadStatus = 'idle' | 'uploading' | 'success' | 'error';
 
 @Component({
-  imports: [ReactiveFormsModule, MatPaginatorModule, DatePipe, FileSizePipe, AudioFormatPipe, StudioSceneComponent],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    MatPaginatorModule,
+    DatePipe,
+    FileSizePipe,
+    AudioFormatPipe,
+    StudioSceneComponent,
+  ],
   templateUrl: './tracks-page.html',
   styleUrl: './tracks-page.css',
 })

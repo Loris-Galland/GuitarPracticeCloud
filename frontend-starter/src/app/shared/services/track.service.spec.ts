@@ -37,6 +37,16 @@ describe('TrackService', () => {
     req.flush({ items: [], total: 0, page: 1, limit: 5, pages: 1 });
   });
 
+  it('get() demande le détail de la piste avec sa forme d\'onde', () => {
+    let peaks: number[] = [];
+    service.get('t1').subscribe((track) => (peaks = track.peaks));
+
+    const req = http.expectOne('/api/tracks/t1');
+    expect(req.request.method).toBe('GET');
+    req.flush({ id: 't1', title: 'Blues', peaks: [0.2, 0.7] });
+    expect(peaks).toEqual([0.2, 0.7]);
+  });
+
   it('remove() appelle DELETE /api/tracks/:id', () => {
     let done = false;
     service.remove('abc123').subscribe(() => (done = true));

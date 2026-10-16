@@ -138,6 +138,9 @@
                   >
                     {{ audioLoadingId() === track.id ? 'Chargement…' : '▶ Écouter' }}
                   </button>
+                  <a class="studio-link" [routerLink]="['/studio', track.id]" [attr.aria-label]="'Ouvrir ' + track.title + ' dans le studio'">
+                    Studio
+                  </a>
                   <button
                     type="button"
                     class="delete"

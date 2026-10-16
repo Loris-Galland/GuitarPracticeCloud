@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Page } from '../models/page.model';
-import { Track } from '../models/track.model';
+import { Track, TrackDetail } from '../models/track.model';
 
 /** Encapsulates all HTTP operations for backing tracks. */
 @Injectable({ providedIn: 'root' })
@@ -24,6 +24,11 @@ export class TrackService {
       observe: 'events',
       reportProgress: true,
     });
+  }
+
+  /** Detail for the studio page, with the waveform peaks. */
+  get(id: string) {
+    return this.http.get<TrackDetail>(`/api/tracks/${id}`);
   }
 
   audio(id: string) {
