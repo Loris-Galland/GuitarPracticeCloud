@@ -1,0 +1,218 @@
+<section>
+  <div class="studio">
+    <div class="studio-text">
+      <p class="eyebrow">MA BIBLIOTHÈQUE</p>
+      <h1>Backing tracks</h1>
+      <p>Importez, retrouvez et écoutez vos morceaux de travail. Lancez une piste&nbsp;: les enceintes suivent le son.</p>
+      <p class="studio-tip">Astuce&nbsp;: cliquez sur une enceinte.</p>
+    </div>
+    <p class="studio-vertical" aria-hidden="true">バッキング・トラック</p>
+    <div class="studio-canvas scene-frame">
+      <!-- @defer: the 3D scene and Three.js are a separate chunk, loaded when this block becomes visible. -->
+      @defer (on viewport; prefetch on idle) {
+        <app-studio-scene [screenText]="current()?.title ?? 'Guitar Practice Cloud'" />
+      } @placeholder {
+        <div class="scene-placeholder"></div>
+      }
+    </div>
+  </div>
+
+  <div class="grid">
+    <article class="card">
+      <h2>Importer</h2>
+      <label>Titre<input [formControl]="title" placeholder="Nom du fichier par défaut" /></label>
+      <label>
+        Fichier audio
+        <input #fileInput type="file" [accept]="acceptedTypes" (change)="choose($event)" [disabled]="uploading()" />
+      </label>
+      <small class="hint">MP3, WAV, OGG ou M4A, 25 Mo maximum.</small>
+      <label>
+        Image de couverture (facultatif)
+        <input #coverInput type="file" [accept]="imageTypes" (change)="chooseCover($event)" [disabled]="uploading()" />
+      </label>
+      <small class="hint">JPEG, PNG ou WebP, 2 Mo maximum. Utilisez une image dont vous avez les droits.</small>
+      @if (coverError()) {
+        <p class="error" role="alert">{{ coverError() }}</p>
+      }
+      <button type="button" (click)="upload()" [disabled]="!file() || !!fileError() || !!coverError() || uploading()">
+        {{ uploading() ? 'Envoi en cours…' : 'Envoyer' }}
+      </button>
+      @if (uploading()) {
+        <div class="upload-progress">
+          <progress max="100" [value]="progress()" aria-label="Progression de l'envoi"></progress>
+          <p class="status" aria-live="polite">
+            @if (progress() < 100) {
+              Envoi de « {{ file()?.name }} » : {{ progress() }} %
+            } @else {
+              Fichier reçu, enregistrement en cours…
+            }
+          </p>
+        </div>
+      }
+      @if (fileError()) {
+        <p class="error" role="alert">{{ fileError() }}</p>
+      }
+      @if (uploadError()) {
+        <p class="error" role="alert">{{ uploadError() }}</p>
+      }
+      @if (uploadStatus() === 'success') {
+        <p class="success" role="status">{{ uploadSuccess() }}</p>
+      }
+    </article>
+
+    <article class="card">
+      <div class="row">
+        <h2>Mes pistes</h2>
+        <button type="button" class="ghost" (click)="load()">Actualiser</button>
+      </div>
+      <label class="search">
+        Rechercher par titre
+        <input type="search" [formControl]="search" placeholder="Ex. : coffee" />
+      </label>
+      @if (current(); as playing) {
+        <div class="player">
+          <p aria-live="polite"><span class="on-air" aria-hidden="true">● ON AIR</span> En cours : <b>{{ playing.title }}</b></p>
+          <!-- (play) plugs the player into the Web Audio analyser that drives the 3D speakers. -->
+          <audio
+            #player
+            [src]="audioUrl()"
+            controls
+            autoplay
+            (play)="visualizer.connect(player)"
+            (pause)="visualizer.stop()"
+            (ended)="visualizer.stop()"
+            (error)="onAudioError()"
+          ></audio>
+        </div>
+      }
+      @if (audioError()) {
+        <p class="error" role="alert">{{ audioError() }}</p>
+      }
+      @if (error()) {
+        <p class="error" role="alert">{{ error() }}</p>
+      }
+      @if (loading()) {
+        <p aria-live="polite">Chargement…</p>
+      } @else {
+        <ul class="cards">
+          @for (track of tracks(); track track.id) {
+            <li>
+              <article
+                class="track-card"
+                [class.playing]="current()?.id === track.id"
+                [attr.aria-current]="current()?.id === track.id ? 'true' : null"
+              >
+                <div class="cover">
+                  @if (current()?.id === track.id) {
+                    <span class="badge" aria-hidden="true">ON AIR</span>
+                  }
+                  @if (covers()[track.id]; as coverUrl) {
+                    <img [src]="coverUrl" [alt]="'Pochette de ' + track.title" />
+                    @if (track.coverSource === 'web') {
+                      <!-- The image belongs to its rights holders: its origin is credited. -->
+                      <p class="credit">
+                        Pochette&nbsp;:
+                        <a href="https://coverartarchive.org" target="_blank" rel="noopener noreferrer">Cover Art Archive</a>
+                      </p>
+                    }
+                  } @else {
+                    <span class="cover-placeholder" aria-hidden="true">♪</span>
+                  }
+                </div>
+                <h3>{{ track.title }}</h3>
+                @if (track.artist) {
+                  <p class="artist">{{ track.artist }}</p>
+                }
+                <p class="original" [title]="track.originalName">{{ track.originalName }}</p>
+                <dl>
+                  <div><dt>Format</dt><dd>{{ track.mimeType | audioFormat }}</dd></div>
+                  <div><dt>Taille</dt><dd>{{ track.size | fileSize }}</dd></div>
+                  <div><dt>Ajoutée le</dt><dd>{{ track.createdAt | date: 'dd/MM/yyyy HH:mm' }}</dd></div>
+                </dl>
+                <div class="actions">
+                  <button
+                    type="button"
+                    (click)="play(track)"
+                    [disabled]="audioLoadingId() === track.id || deletingId() === track.id"
+                    [attr.aria-label]="'Écouter ' + track.title"
+                  >
+                    {{ audioLoadingId() === track.id ? 'Chargement…' : '▶ Écouter' }}
+                  </button>
+                  <button
+                    type="button"
+                    class="delete"
+                    (click)="remove(track)"
+                    [disabled]="deletingId() === track.id"
+                    [attr.aria-label]="'Supprimer ' + track.title"
+                  >
+                    {{ deletingId() === track.id ? 'Suppression…' : 'Supprimer' }}
+                  </button>
+                </div>
+                <!-- The real input is visually hidden but stays focusable: the label acts as the button. -->
+                <label class="cover-button" [class.busy]="coverUploadingId() === track.id">
+                  <input
+                    type="file"
+                    class="visually-hidden"
+                    [accept]="imageTypes"
+                    (change)="changeCover(track, $event)"
+                    [disabled]="coverUploadingId() === track.id"
+                    [attr.aria-label]="(track.hasCover ? 'Changer l\'image de ' : 'Ajouter une image à ') + track.title"
+                  />
+                  @if (coverUploadingId() === track.id) {
+                    Envoi de l'image…
+                  } @else {
+                    {{ track.hasCover ? "Changer l'image" : 'Ajouter une image' }}
+                  }
+                </label>
+                @if (!track.hasCover) {
+                  <button
+                    type="button"
+                    class="link-button"
+                    (click)="openLookup(track)"
+                    [attr.aria-expanded]="lookupId() === track.id"
+                    [attr.aria-controls]="'lookup-' + track.id"
+                  >
+                    Chercher une pochette en ligne
+                  </button>
+                }
+                @if (lookupId() === track.id) {
+                  <form
+                    class="lookup"
+                    [id]="'lookup-' + track.id"
+                    [formGroup]="lookupForm"
+                    (ngSubmit)="searchCover(track)"
+                  >
+                    <label>Artiste<input formControlName="artist" placeholder="Ex. : Daft Punk" /></label>
+                    <label>Titre<input formControlName="title" /></label>
+                    <button type="submit" [disabled]="lookupForm.invalid || lookingUpId() === track.id">
+                      {{ lookingUpId() === track.id ? 'Recherche…' : 'Chercher' }}
+                    </button>
+                    <small class="hint">Recherche sur MusicBrainz, image de Cover Art Archive.</small>
+                  </form>
+                }
+              </article>
+            </li>
+          } @empty {
+            <li class="empty">
+              @if (query()) {
+                Aucune piste ne correspond à « {{ query() }} ».
+              } @else {
+                Aucune piste pour l'instant, importez votre premier morceau.
+              }
+            </li>
+          }
+        </ul>
+      }
+      <mat-paginator
+        [length]="total()"
+        [pageSize]="limit()"
+        [pageIndex]="page() - 1"
+        [pageSizeOptions]="[5, 10, 20]"
+        [disabled]="loading()"
+        (page)="onPage($event)"
+        aria-label="Pagination des pistes"
+      />
+      <p class="page-info">Page {{ page() }} / {{ pages() }}</p>
+    </article>
+  </div>
+</section>
